@@ -13,16 +13,15 @@ export const createTable = pgTableCreator(
   (name) => `oliverkeenanlyu3.0_${name}`,
 );
 
-export const posts = createTable(
-  "post",
-  (d) => ({
-    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
-    name: d.varchar({ length: 256 }),
-    createdAt: d
-      .timestamp({ withTimezone: true })
-      .$defaultFn(() => /* @__PURE__ */ new Date())
-      .notNull(),
-    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
-  }),
-  (t) => [index("name_idx").on(t.name)],
-);
+import { pgTable, text, timestamp, jsonb } from "drizzle-orm/pg-core";
+
+export const smartLinks = pgTable("smart_links", {
+  spotifyId: text("spotify_id").primaryKey(),
+  isrc:      text("isrc"),
+  name:      text("name"),
+  imageUrl:  text("image_url"),
+  albumType: text("album_type").default("album").notNull(),
+  data:      jsonb("data").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
