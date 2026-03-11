@@ -1,6 +1,6 @@
 import { Header } from "@/app/_components/header";
 import { DSP_PRIORITY } from "@/server/lib";
-import type { DspEntry, SmartLinks } from "@/server/types";
+import type { DspEntry } from "@/server/types";
 import { api } from "@/trpc/server";
 import Image from "next/image";
 
@@ -19,7 +19,7 @@ export default async function SmartLinkPage({
             ? type
             : "album";
 
-    const links: SmartLinks = await api.smartlink.smartLinks({
+    const links = await api.smartlink.smartLinks({
         spotifyId,
         albumType,
         name,
@@ -30,9 +30,9 @@ export default async function SmartLinkPage({
         (p): p is { key: typeof p.key; entry: DspEntry } => !!p.entry,
     );
 
-    const secondary = Object.entries(links).filter(
-        ([key]) => !(DSP_PRIORITY as readonly string[]).includes(key),
-    ) as [string, DspEntry][];
+const secondary = Object.entries(links).filter(
+    ([key]) => !(DSP_PRIORITY as readonly string[]).includes(key),
+) satisfies [string, DspEntry][];
 
     const imageUrl = image ? decodeURIComponent(image) : null;
     const releaseName = name ? decodeURIComponent(name) : null;
