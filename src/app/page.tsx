@@ -1,6 +1,7 @@
 import { api } from "@/trpc/server";
 import { ReleasesGrid } from "@/app/_components/releases-grid";
 import { Header } from "./_components/header";
+import { LicensingGrid } from "./_components/licensing-grid";
 
 export default async function Home() {
   const releases = await api.spotify.releases({ limit: 24 });
@@ -20,6 +21,8 @@ export default async function Home() {
       <Header/>
 
         <ReleasesGrid releases={releases} />
+
+        <LicensingGrid/>
       </div>
     </main>
   );

@@ -8,18 +8,6 @@ export async function getSmartLinks(
   spotifyId: string,
   albumType: "album" | "single" | "compilation",
 ): Promise<SmartLinks> {
-  let identifier: string;
-
-  if (albumType === "single") {
-    const isrc = await getReleaseISRC(spotifyId);
-    identifier = isrc ? `isrc/${isrc}` : `https://open.spotify.com/album/${spotifyId}`;
-    console.log(`[songlink] single — using ${isrc ? `ISRC:${isrc}` : "Spotify URL"}`);
-  } else {
-    identifier = `https://open.spotify.com/album/${spotifyId}`;
-    console.log(`[songlink] album — using Spotify URL`);
-  }
-
-  // Guaranteed Spotify fallback — always present regardless of Songlink result
   const spotifyFallback: SmartLinks = {
     spotify: {
       url: `https://open.spotify.com/album/${spotifyId}`,
@@ -28,29 +16,34 @@ export async function getSmartLinks(
     },
   };
 
-  const apiUrl = `https://api.song.link/v1-alpha.1/links?url=${encodeURIComponent(identifier)}&userCountry=US`;
-  const res = await fetch(apiUrl, { next: { revalidate: 60 * 60 * 24 * 7 } });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    console.warn(`[songlink] request failed: ${res.status} — ${body}, falling back to Spotify only`);
-    return spotifyFallback;
+  async function fetchFromSonglink(identifier: string) {
+    const apiUrl = `https://api.song.link/v1-alpha.1/links?url=${encodeURIComponent(identifier)}&userCountry=US`;
+    const res = await fetch(apiUrl, { next: { revalidate: 60 * 60 * 24 * 7 } });
+    if (!res.ok) return null;
+    const json = await res.json() as { linksByPlatform?: Record<string, { url?: string }> };
+    if (!json.linksByPlatform) return null;
+    console.log(`[songlink] ${identifier} →`, Object.keys(json.linksByPlatform));
+    return normalizePlatforms(json.linksByPlatform);
   }
 
-  const json = (await res.json()) as {
-    linksByPlatform?: Record<string, { url?: string }>;
-  };
+  // Build list of identifiers to try
+  const identifiers: string[] = [];
 
-  if (!json.linksByPlatform) {
-    console.warn("[songlink] response missing linksByPlatform, falling back to Spotify only");
-    return spotifyFallback;
+  if (albumType === "single") {
+    const isrc = await getReleaseISRC(spotifyId);
+    if (isrc) identifiers.push(`isrc/${isrc}`);
   }
 
-  console.log(`[songlink] platforms found:`, Object.keys(json.linksByPlatform));
+  // Always try Spotify URL as well
+  identifiers.push(`https://open.spotify.com/album/${spotifyId}`);
 
-  // Merge: Songlink results take priority, Spotify fallback fills the gap if missing
-  return {
-    ...spotifyFallback,
-    ...normalizePlatforms(json.linksByPlatform),
-  };
+  // Fetch all in parallel, merge results — more identifiers = more platform coverage
+  const results = await Promise.all(identifiers.map(fetchFromSonglink));
+
+  const merged = results.reduce<SmartLinks>((acc, result) => {
+    if (!result) return acc;
+    return { ...acc, ...result };
+  }, spotifyFallback);
+
+  return merged;
 }

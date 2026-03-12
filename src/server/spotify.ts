@@ -114,7 +114,7 @@ export async function getArtistReleases(input: {
     if (dedupe.has(key)) continue;
     dedupe.add(key);
 
-    console.log("rellllleases",releases);
+    // console.log("rellllleases",releases);
 
     releases.push({
       id: it.id,
