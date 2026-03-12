@@ -231,3 +231,19 @@ export async function getReleaseISRC(albumId: string): Promise<string | null> {
     return null;
   }
 }
+
+export async function getAlbumMeta(albumId: string): Promise<{ name: string; artistName: string } | null> {
+  try {
+    const raw = await spotifyFetch(`albums/${albumId}`);
+    const data = z.object({
+      name: z.string(),
+      artists: z.array(z.object({ name: z.string() })).optional(),
+    }).parse(raw);
+    return {
+      name: data.name,
+      artistName: data.artists?.[0]?.name ?? "Oliver Lyu",
+    };
+  } catch {
+    return null;
+  }
+}

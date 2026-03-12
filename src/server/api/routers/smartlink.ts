@@ -18,46 +18,38 @@ export const smartlinkRouter = createTRPCRouter({
         imageUrl:  z.string().optional(),
       }),
     )
-    .query(async ({ input }): Promise<SmartLinks> => {
-      const [cached] = await db
-        .select()
-        .from(smartLinks)
-        .where(eq(smartLinks.spotifyId, input.spotifyId))
-        .limit(1);
+   .query(async ({ input }): Promise<{ links: SmartLinks; name?: string; imageUrl?: string }> => {
+  const [cached] = await db
+    .select()
+    .from(smartLinks)
+    .where(eq(smartLinks.spotifyId, input.spotifyId))
+    .limit(1);
 
-      if (cached) {
-        const age = Date.now() - new Date(cached.updatedAt).getTime();
+  if (cached) {
+    const age = Date.now() - new Date(cached.updatedAt).getTime();
+    if (age < CACHE_MS) {
+      return {
+        links: cached.data as SmartLinks,
+        name: cached.name ?? input.name,
+        imageUrl: cached.imageUrl ?? input.imageUrl,
+      };
+    }
 
-        if (age < CACHE_MS) {
-          return cached.data as SmartLinks;
-        }
+    const links = await getSmartLinks(input.spotifyId, input.albumType);
+    await db.update(smartLinks)
+      .set({ data: links, name: input.name, imageUrl: input.imageUrl, albumType: input.albumType, updatedAt: new Date() })
+      .where(eq(smartLinks.spotifyId, input.spotifyId));
+    return { links, name: input.name, imageUrl: input.imageUrl };
+  }
 
-        // Stale → refresh
-        const links = await getSmartLinks(input.spotifyId, input.albumType);
-        await db
-          .update(smartLinks)
-          .set({
-            data:      links,
-            name:      input.name,
-            imageUrl:  input.imageUrl,
-            albumType: input.albumType,
-            updatedAt: new Date(),
-          })
-          .where(eq(smartLinks.spotifyId, input.spotifyId));
-
-        return links;
-      }
-
-      // No cache → fetch + insert
-      const links = await getSmartLinks(input.spotifyId, input.albumType);
-      await db.insert(smartLinks).values({
-        spotifyId: input.spotifyId,
-        albumType: input.albumType,
-        name:      input.name,
-        imageUrl:  input.imageUrl,
-        data:      links,
-      });
-
-      return links;
-    }),
+  const links = await getSmartLinks(input.spotifyId, input.albumType);
+  await db.insert(smartLinks).values({
+    spotifyId: input.spotifyId,
+    albumType: input.albumType,
+    name: input.name,
+    imageUrl: input.imageUrl,
+    data: links,
+  });
+  return { links, name: input.name, imageUrl: input.imageUrl };
+})
 });

@@ -1,8 +1,7 @@
+import { getAppleMusicUrl } from "./apple-music";
 import { normalizePlatforms } from "./lib";
-import { getReleaseISRC } from "./spotify";
+import { getReleaseISRC, getAlbumMeta } from "./spotify";
 import type { SmartLinks } from "./types";
-
-
 
 export async function getSmartLinks(
   spotifyId: string,
@@ -26,7 +25,6 @@ export async function getSmartLinks(
     return normalizePlatforms(json.linksByPlatform);
   }
 
-  // Build list of identifiers to try
   const identifiers: string[] = [];
 
   if (albumType === "single") {
@@ -34,16 +32,31 @@ export async function getSmartLinks(
     if (isrc) identifiers.push(`isrc/${isrc}`);
   }
 
-  // Always try Spotify URL as well
   identifiers.push(`https://open.spotify.com/album/${spotifyId}`);
 
-  // Fetch all in parallel, merge results — more identifiers = more platform coverage
-  const results = await Promise.all(identifiers.map(fetchFromSonglink));
+  // Fetch Songlink + album meta in parallel
+  const [results, meta] = await Promise.all([
+    Promise.all(identifiers.map(fetchFromSonglink)),
+    getAlbumMeta(spotifyId),
+  ]);
 
   const merged = results.reduce<SmartLinks>((acc, result) => {
     if (!result) return acc;
     return { ...acc, ...result };
   }, spotifyFallback);
+
+  // Apple Music fallback via iTunes search
+  if (!merged.appleMusic && meta) {
+    const appleMusicUrl = await getAppleMusicUrl(meta.name, meta.artistName);
+    if (appleMusicUrl) {
+      merged.appleMusic = {
+        url: appleMusicUrl,
+        displayName: "Apple Music",
+        isPrimary: true,
+      };
+      console.log(`[applemusic] found via iTunes search: ${appleMusicUrl}`);
+    }
+  }
 
   return merged;
 }

@@ -1,4 +1,6 @@
 import { Header } from "@/app/_components/header";
+import { ShareButton } from "@/app/_components/share-button";
+import { env } from "@/env";
 import { DSP_PRIORITY } from "@/server/lib";
 import type { DspEntry } from "@/server/types";
 import { api } from "@/trpc/server";
@@ -19,7 +21,7 @@ export default async function SmartLinkPage({
             ? type
             : "album";
 
-    const links = await api.smartlink.smartLinks({
+    const { links, name: cachedName, imageUrl: cachedImageUrl } = await api.smartlink.smartLinks({
         spotifyId,
         albumType,
         name,
@@ -30,13 +32,13 @@ export default async function SmartLinkPage({
         (p): p is { key: typeof p.key; entry: DspEntry } => !!p.entry,
     );
 
-const secondary = Object.entries(links).filter(
-    ([key]) => !(DSP_PRIORITY as readonly string[]).includes(key),
-) satisfies [string, DspEntry][];
+    const secondary = Object.entries(links).filter(
+        ([key]) => !(DSP_PRIORITY as readonly string[]).includes(key),
+    ) satisfies [string, DspEntry][];
 
-    const imageUrl = image ? decodeURIComponent(image) : null;
-    const releaseName = name ? decodeURIComponent(name) : null;
-
+    // Use DB values, fall back to URL params
+    const imageUrl = cachedImageUrl ?? (image ? decodeURIComponent(image) : null);
+    const releaseName = cachedName ?? (name ? decodeURIComponent(name) : null);
     return (
         <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-black text-white">
 
@@ -52,8 +54,11 @@ const secondary = Object.entries(links).filter(
                 </>
             )}
 
+
             <div className="relative z-10 w-full max-w-sm px-4 py-12">
                 <Header />
+
+
 
 
                 {/* Artwork + title */}
@@ -109,7 +114,10 @@ const secondary = Object.entries(links).filter(
                         </>
                     )}
                 </div>
+                <ShareButton url={`${env.NEXT_PUBLIC_BASE_URL}/l/${spotifyId}`} />
+
             </div>
+
         </main>
     );
 }
