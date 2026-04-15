@@ -21,7 +21,7 @@ export function Header() {
             <header className="mb-10">
                 <Link href="/"><h1 className="text-xl">Oliver Lyu</h1></Link>
                 <p className="mt-3 max-w-2xl text-sm text-white/80">
-                   Film, TV & sync composer. Indie, electronic, neoclassical and ambient. Edinburgh, UK.{" "}
+                  Sync artist & composer · Indie Classical · Cinematic · Ambient · Indie Electronic · Edinburgh, UK{" "}
                     <a
                         href="mailto:oliver@oliverkeenanlyu.com"
                         className="underline underline-offset-4 hover:text-white"

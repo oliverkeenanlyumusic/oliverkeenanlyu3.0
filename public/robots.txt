@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /p/
+
+# Prevent indexing of private pitch deck routes
+# These are meant for private sharing only
