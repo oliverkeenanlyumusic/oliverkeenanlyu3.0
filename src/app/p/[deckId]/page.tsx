@@ -22,7 +22,7 @@ export async function generateMetadata({
 
   return {
     title: `${deck.title} - Private Pitch`,
-    description: deck.subtitle || deck.description,
+    description: deck.subtitle ?? deck.description,
     robots: { 
       index: false, 
       follow: false, 

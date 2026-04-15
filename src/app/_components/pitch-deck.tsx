@@ -18,7 +18,7 @@ export function PitchDeck({
   deckId,
   shareUrl,
 }: PitchDeckProps) {
-  const accentColor = customStyles?.accentColor || "white";
+  const accentColor = customStyles?.accentColor ?? "white";
   
   return (
     <main className="relative min-h-screen overflow-hidden text-white">
@@ -120,7 +120,7 @@ export function PitchDeck({
           <div className="mb-16">
             <div className="mb-8 flex items-center items-baseline gap-4">
               <h2 className="text-sm uppercase tracking-widest text-white/60">
-                {playlistTitle || "Complete Playlist"}
+                {playlistTitle ?? "Complete Playlist"}
               </h2>
               <div className="h-px flex-1 bg-white/40" />
             </div>
